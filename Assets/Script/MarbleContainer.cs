@@ -1,6 +1,7 @@
-// --- BẮT ĐẦU CODE THÊM MỚI ---
+// --- BẮT ĐẦU CODE ĐƯỢC SỬA ---
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 [System.Serializable]
 public class ContainerSlot
@@ -16,6 +17,14 @@ public class MarbleContainer : MonoBehaviour
 {
     [Tooltip("Danh sách 10 ô chứa bi")]
     public List<ContainerSlot> slots = new List<ContainerSlot>();
+
+    [Tooltip("Tổng số bi cần thu thập để hoàn thành màn chơi")]
+    public int totalMarblesInLevel;
+
+    [Tooltip("Tên màn chơi (Scene) tiếp theo")]
+    public string nextLevelName;
+
+    private int currentCollectedMarbles = 0;
 
     // Hàm xử lý đưa bi vào hộp
     public void ProcessMarble(string colorID, GameObject prefabToSpawn)
@@ -49,12 +58,42 @@ public class MarbleContainer : MonoBehaviour
         // Bước 3: Spawn bi vào ô đã xác định
         if (targetSlot != null && prefabToSpawn != null)
         {
-            Instantiate(prefabToSpawn, targetSlot.spawnPoint.position, Quaternion.identity, targetSlot.spawnPoint);
+            // Đã sửa: Bỏ tham số targetSlot.spawnPoint để bi không kế thừa Scale của Spawner
+            GameObject spawnedMarble = Instantiate(prefabToSpawn, targetSlot.spawnPoint.position, Quaternion.identity);
+            
+            // Xóa bỏ trạng thái nảy (bounce) bằng cách thay thế PhysicsMaterial2D
+            Collider2D col = spawnedMarble.GetComponent<Collider2D>();
+            if (col != null)
+            {
+                PhysicsMaterial2D noBounceMat = new PhysicsMaterial2D("NoBounce");
+                noBounceMat.bounciness = 0f; // Triệt tiêu lực tưng nảy
+                noBounceMat.friction = 0.4f; // Giữ lại ma sát cơ bản
+                
+                col.sharedMaterial = noBounceMat;
+            }
+
+            // Tăng số lượng bi đã thu thập
+            currentCollectedMarbles++;
+
+            // Kiểm tra điều kiện qua màn
+            CheckWinCondition();
         }
         else
         {
             Debug.LogWarning("Không tìm thấy ô trống trong Container hoặc thiếu Prefab!");
         }
     }
+
+    private void CheckWinCondition()
+    {
+        if (currentCollectedMarbles >= totalMarblesInLevel)
+        {
+            Debug.Log("Đã thu thập đủ bi! Đang tải màn chơi mới...");
+            if (!string.IsNullOrEmpty(nextLevelName))
+            {
+                SceneManager.LoadScene(nextLevelName);
+            }
+        }
+    }
 }
-// --- KẾT THÚC CODE THÊM MỚI ---
+// --- KẾT THÚC CODE ĐƯỢC SỬA ---
