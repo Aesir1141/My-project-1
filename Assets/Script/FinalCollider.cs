@@ -1,4 +1,4 @@
-// --- BẮT ĐẦU CODE THÊM MỚI ---
+// Script: FinalCollider.cs
 using UnityEngine;
 
 public class FinalCollider : MonoBehaviour
@@ -8,11 +8,16 @@ public class FinalCollider : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-        // Kiểm tra xem object chạm vào có phải là bi không
         Marble marble = collision.GetComponent<Marble>();
         
-        if (marble != null)
+        // --- BẮT ĐẦU CODE ĐƯỢC SỬA ---
+        // Thêm điều kiện !marble.isProcessed để bỏ qua nếu bi đã được xử lý trước đó
+        if (marble != null && !marble.isProcessed)
         {
+            // Khoá viên bi lại ngay lập tức
+            marble.isProcessed = true;
+            // --- KẾT THÚC CODE ĐƯỢC SỬA ---
+
             // Xác định prefab cần spawn (nếu viên bi không set prefab riêng thì dùng chính nó)
             GameObject spawnPrefab = marble.prefabToSpawnInContainer != null ? marble.prefabToSpawnInContainer : marble.gameObject;
 
@@ -27,4 +32,3 @@ public class FinalCollider : MonoBehaviour
         }
     }
 }
-// --- KẾT THÚC CODE THÊM MỚI ---
