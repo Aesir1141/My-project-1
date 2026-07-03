@@ -50,7 +50,16 @@ public class LevelSpawner : MonoBehaviour
                 Vector2 randomCircle = Random.insideUnitCircle * spawnOffset;
                 Vector3 finalSpawnPosition = spawnPoint.position + new Vector3(randomCircle.x, randomCircle.y, 0f);
                 
-                Instantiate(prefabToSpawn, finalSpawnPosition, Quaternion.identity);
+                // Gán viên bi vừa spawn vào biến để xử lý vật lý
+                GameObject spawnedMarble = Instantiate(prefabToSpawn, finalSpawnPosition, Quaternion.identity);
+                
+                // Reset gia tốc và vận tốc xoay về 0 để tránh lỗi văng ngược lên
+                Rigidbody2D rb = spawnedMarble.GetComponent<Rigidbody2D>();
+                if (rb != null)
+                {
+                    rb.linearVelocity = Vector2.zero;
+                    rb.angularVelocity = 0f;
+                }
                 // --- KẾT THÚC CODE ĐƯỢC THÊM ---
             }
 
@@ -61,6 +70,7 @@ public class LevelSpawner : MonoBehaviour
             }
             // --- KẾT THÚC CODE ĐƯỢC SỬA ---
         }
+        
 
         Debug.Log($"Đã spawn xong {totalMarblesToSpawn} viên bi!");
     }
