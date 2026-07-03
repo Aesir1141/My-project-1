@@ -1,10 +1,13 @@
 using UnityEngine;
 
 // Bắt đầu code được sửa hoặc thêm
+[RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
 public class Stage_2_Obs : MonoBehaviour
 {
-    public float amplitude = 0.5f; // Độ sâu lún xuống
-    public float speed = 2.0f;     // Tốc độ lặp lại
+    public int xSegments = 50;           // Tăng nhẹ số lưới để đỉnh sóng bo tròn mượt nhất
+    public float amplitude = 1.2f;       
+    public float speed = 3.0f;           
+    public float waveFrequency = 4.0f;   
     
     private MeshFilter meshFilter;
     private Mesh mesh;
@@ -13,12 +16,59 @@ public class Stage_2_Obs : MonoBehaviour
     void Start()
     {
         meshFilter = GetComponent<MeshFilter>();
-        if (meshFilter != null)
+        GenerateSubdividedQuad();
+    }
+
+    void GenerateSubdividedQuad()
+    {
+        mesh = new Mesh();
+        mesh.name = "WavyQuad";
+
+        int numVertices = (xSegments + 1) * 2; 
+        baseVertices = new Vector3[numVertices];
+        Vector2[] uvs = new Vector2[numVertices];
+        
+        float halfWidth = 0.5f;
+        float halfHeight = 0.5f;
+        
+        for (int i = 0; i <= xSegments; i++)
         {
-            // Lấy mesh từ object
-            mesh = meshFilter.mesh;
-            baseVertices = mesh.vertices;
+            float t = (float)i / xSegments;
+            float xPos = Mathf.Lerp(-halfWidth, halfWidth, t);
+            
+            baseVertices[i] = new Vector3(xPos, -halfHeight, 0);
+            uvs[i] = new Vector2(t, 0);
+            
+            baseVertices[i + xSegments + 1] = new Vector3(xPos, halfHeight, 0);
+            uvs[i + xSegments + 1] = new Vector2(t, 1);
         }
+
+        int numTriangles = xSegments * 6;
+        int[] triangles = new int[numTriangles];
+        int ti = 0;
+        
+        for (int i = 0; i < xSegments; i++)
+        {
+            int bottomLeft = i;
+            int bottomRight = i + 1;
+            int topLeft = i + xSegments + 1;
+            int topRight = i + xSegments + 2;
+
+            triangles[ti++] = bottomLeft;
+            triangles[ti++] = topLeft;
+            triangles[ti++] = bottomRight;
+
+            triangles[ti++] = bottomRight;
+            triangles[ti++] = topLeft;
+            triangles[ti++] = topRight;
+        }
+
+        mesh.vertices = baseVertices;
+        mesh.uv = uvs;
+        mesh.triangles = triangles;
+        mesh.RecalculateNormals();
+
+        meshFilter.mesh = mesh;
     }
 
     void Update()
@@ -26,27 +76,21 @@ public class Stage_2_Obs : MonoBehaviour
         if (mesh == null) return;
 
         Vector3[] vertices = new Vector3[baseVertices.Length];
-        // Tính giá trị lún dựa trên hàm Sin (để tạo vòng lặp lên/xuống liên tục)
-        float offset = Mathf.Sin(Time.time * speed) * amplitude;
 
         for (int i = 0; i < baseVertices.Length; i++)
         {
             Vector3 v = baseVertices[i];
             
-            // Chỉ tác động vào phần cạnh trên (dựa vào tọa độ Y)
-            // Kiểm tra các đỉnh nằm phía trên (Ví dụ: v.y > 0.4f)
-            if (v.y > 0.4f) 
+            if (v.y > 0) 
             {
-                // Công thức Parabol: f(x) = a * x^2
-                // dist là khoảng cách từ đỉnh hiện tại đến tâm X của object
-                float dist = v.x; 
+                float normalizedDist = Mathf.Clamp01(Mathf.Abs(v.x) / 0.5f);
+                float centerFocusMultiplier = Mathf.SmoothStep(1f, 0f, normalizedDist);
                 
-                // Độ biến dạng giảm dần từ tâm ra hai bên để tạo hình Parabol
-                // Khi dist = 0 (tâm), lún sâu nhất = offset
-                // Khi dist càng xa tâm, lún càng ít
-                float deformation = offset * (1 - (dist * dist * 4.0f)); 
+                // Thay thế Sóng Di Chuyển (Traveling Wave) bằng Sóng Đứng (Standing Wave)
+                // Tách riêng tính toán vị trí (v.x) và thời gian (Time.time)
+                float wave = Mathf.Cos(v.x * waveFrequency) * Mathf.Sin(Time.time * speed) * (amplitude * centerFocusMultiplier); 
                 
-                v.y = baseVertices[i].y + deformation;
+                v.y = baseVertices[i].y + wave;
             }
             vertices[i] = v;
         }
@@ -54,7 +98,6 @@ public class Stage_2_Obs : MonoBehaviour
         mesh.vertices = vertices;
         mesh.RecalculateNormals();
         
-        // Cập nhật Collider nếu bạn có dùng MeshCollider
         if (GetComponent<MeshCollider>() != null)
         {
             GetComponent<MeshCollider>().sharedMesh = mesh;
